@@ -33,8 +33,8 @@ import SettingsDrawer from "@/components/SettingsDrawer";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import LearningLoopGlanceExternal from "@/components/LearningLoopGlance";
 import CloudSyncBar from "@/components/CloudSyncBar";
-import JsonImport from "@/components/JsonImport";
-import AuthGate from "@/components/AuthGate";
+//import JsonImport from "@/components/JsonImport";
+//import AuthGate from "@/components/AuthGate";
 import { pushLocalToCloudOnce, pullCloudToLocal, scheduleCloudBackups } from "@/lib/supabase/cloudSync";
 import { useSupabaseUser } from "@/lib/supabase/useUser";
 import IntegrationsPanel from "@/components/IntegrationsPanel";
@@ -99,9 +99,9 @@ export default function Page() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <AuthGate>
+       
           <PageInner />
-        </AuthGate>
+        
       </ToastProvider>
     </ThemeProvider>
   );
