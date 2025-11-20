@@ -1,8 +1,17 @@
 ﻿"use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+// -------------------------- THEME CORE --------------------------
 
 type Theme = "light" | "dark" | "system";
+
 type ThemeCtx = {
   theme: Theme;
   setTheme: (t: Theme) => void;
@@ -11,6 +20,13 @@ type ThemeCtx = {
 
 const ThemeContext = createContext<ThemeCtx | null>(null);
 const THEME_KEY = "focus_theme";
+
+export function ClientOnly({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+  return <>{children}</>;
+}
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
@@ -25,12 +41,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const resolved: "light" | "dark" = useMemo(() => {
     if (theme === "system") {
       if (typeof window === "undefined") return "light";
-      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      return window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
     }
     return theme;
   }, [theme]);
 
   useEffect(() => {
+    if (typeof localStorage === "undefined") return;
     try {
       localStorage.setItem(THEME_KEY, theme);
     } catch {}
@@ -46,7 +65,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, resolved }}>
-      <TokensProvider>{children}</TokensProvider>
+      <TokensProvider>
+        {/* Everything inside is client-only, so no hydration mismatch */}
+        <ClientOnly>{children}</ClientOnly>
+      </TokensProvider>
     </ThemeContext.Provider>
   );
 }
@@ -57,7 +79,7 @@ export function useTheme() {
   return ctx;
 }
 
-/* ------------------------------ THEME TOKENS ------------------------------ */
+// -------------------------- THEME TOKENS --------------------------
 
 export type ThemeTokens = {
   primary: string;
@@ -66,9 +88,11 @@ export type ThemeTokens = {
   success: string;
   warning: string;
   danger: string;
-  ok: string;    // alias of success
-  warn: string;  // alias of warning
-  err: string;   // alias of danger
+
+  ok: string;
+  warn: string;
+  err: string;
+
   text: string;
   muted: string;
   grid: string;
@@ -79,44 +103,48 @@ export type ThemeTokens = {
   line: string;
 };
 
-const DEFAULT_TOKENS_LIGHT: ThemeTokens = {
-  primary:    "#6366f1",
+const LIGHT: ThemeTokens = {
+  primary: "#6366f1",
   primaryAlt: "#a78bfa",
-  accent:     "#22c55e",
-  success:    "#16a34a",
-  warning:    "#f59e0b",
-  danger:     "#ef4444",
-  ok:         "#16a34a",
-  warn:       "#f59e0b",
-  err:        "#ef4444",
-  text:       "#111827",
-  muted:      "#6b7280",
-  grid:       "#e5e7eb",
-  bg:         "#f8fafc",
-  bgCard:     "#ffffff",
-  ring:       "#4f46e5",
-  label:      "#374151",
-  line:       "#6366f1",
+  accent: "#22c55e",
+  success: "#16a34a",
+  warning: "#f59e0b",
+  danger: "#ef4444",
+
+  ok: "#16a34a",
+  warn: "#f59e0b",
+  err: "#ef4444",
+
+  text: "#111827",
+  muted: "#6b7280",
+  grid: "#e5e7eb",
+  bg: "#f8fafc",
+  bgCard: "#ffffff",
+  ring: "#4f46e5",
+  label: "#374151",
+  line: "#6366f1",
 };
 
-const DEFAULT_TOKENS_DARK: ThemeTokens = {
-  primary:    "#818cf8",
+const DARK: ThemeTokens = {
+  primary: "#818cf8",
   primaryAlt: "#c4b5fd",
-  accent:     "#34d399",
-  success:    "#22c55e",
-  warning:    "#fbbf24",
-  danger:     "#f87171",
-  ok:         "#22c55e",
-  warn:       "#fbbf24",
-  err:        "#f87171",
-  text:       "#e5e7eb",
-  muted:      "#9ca3af",
-  grid:       "#374151",
-  bg:         "#0b1220",
-  bgCard:     "#111827",
-  ring:       "#818cf8",
-  label:      "#9ca3af",
-  line:       "#818cf8",
+  accent: "#34d399",
+  success: "#22c55e",
+  warning: "#fbbf24",
+  danger: "#f87171",
+
+  ok: "#22c55e",
+  warn: "#fbbf24",
+  err: "#f87171",
+
+  text: "#e5e7eb",
+  muted: "#9ca3af",
+  grid: "#374151",
+  bg: "#0b1220",
+  bgCard: "#111827",
+  ring: "#818cf8",
+  label: "#9ca3af",
+  line: "#818cf8",
 };
 
 type TokensCtx = {
@@ -146,36 +174,38 @@ function TokensProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, [overrides]);
 
-  const base = resolved === "dark" ? DEFAULT_TOKENS_DARK : DEFAULT_TOKENS_LIGHT;
+  const base = resolved === "dark" ? DARK : LIGHT;
 
   const merged = useMemo<ThemeTokens>(() => {
-    const m = { ...base, ...overrides } as ThemeTokens;
-    m.ok   = overrides.ok   ?? m.success;
-    m.warn = overrides.warn ?? m.warning;
-    m.err  = overrides.err  ?? m.danger;
-    m.label = overrides.label ?? m.label ?? m.muted;
-    m.line  = overrides.line  ?? m.line  ?? m.primary;
-    return m;
+    const out = { ...base, ...overrides } as ThemeTokens;
+    out.ok = overrides.ok ?? out.success;
+    out.warn = overrides.warn ?? out.warning;
+    out.err = overrides.err ?? out.danger;
+    out.label = overrides.label ?? out.label ?? out.muted;
+    out.line = overrides.line ?? out.line ?? out.primary;
+    return out;
   }, [base, overrides]);
 
-  const value = useMemo<TokensCtx>(
+  const value = useMemo(
     () => ({
       tokens: merged,
-      setTokens: (next) => setOverrides((prev) => ({ ...prev, ...next })),
+      setTokens: (next: Partial<ThemeTokens>) =>
+        setOverrides((prev) => ({ ...prev, ...next })),
     }),
     [merged]
   );
 
-  return <TokensContext.Provider value={value}>{children}</TokensContext.Provider>;
+  return (
+    <TokensContext.Provider value={value}>{children}</TokensContext.Provider>
+  );
 }
 
-/** 👉 Named export your page expects */
-export function useThemeTokens(): ThemeTokens {
+export function useThemeTokens() {
   const ctx = useContext(TokensContext);
-  return ctx?.tokens ?? DEFAULT_TOKENS_LIGHT;
+  return ctx?.tokens ?? LIGHT;
 }
 
-export function useSetThemeTokens(): (next: Partial<ThemeTokens>) => void {
+export function useSetThemeTokens() {
   const ctx = useContext(TokensContext);
   return ctx?.setTokens ?? (() => {});
 }

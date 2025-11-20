@@ -1,21 +1,16 @@
+// app/layout.tsx
+import type { Metadata } from "next";
 import "./globals.css";
-import { ToastProvider } from "@/components/ui/use-toast";
-import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { AppShell } from "@/components/AppShell";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  // keep metadata here (but NOT viewport)
-  title: '80/20 Focus Optimizer',
-  description: "Plan · Focus · Learn",
-};
-
-export const viewport: Viewport = {
-  // move viewport here (NOT in metadata)
-  width: "device-width",
-  initialScale: 1,
-  // optional:
-  // themeColor: "#0f172a",
-  // maximumScale: 1,
-  // userScalable: false,
+  title: "OptimApp · 80/20 Focus Planner",
+  description:
+    "Turn 20% of your day into 80% of your impact with a smart focus planner.",
 };
 
 export default function RootLayout({
@@ -24,8 +19,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${inter.className} bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100`}
+      >
+        <ThemeProvider>
+          <AppShell>{children}</AppShell>
+        </ThemeProvider>
+      </body>
     </html>
   );
 }
