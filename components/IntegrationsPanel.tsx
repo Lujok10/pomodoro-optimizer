@@ -38,7 +38,7 @@ export default function IntegrationsPanel() {
     await sb.auth.signInWithOAuth({
       provider: "google",
       options: {
-        // Include identity scopes so Supabase can get email
+        // Identity + calendar/tasks scopes so Supabase can get email and read data
         scopes: [
           "openid",
           "email",
@@ -75,14 +75,9 @@ export default function IntegrationsPanel() {
     });
   };
 
-  const connectCustom = (p: "todoist" | "trello" | "asana") => {
-    if (typeof window === "undefined") return;
-    window.location.href = `/api/integrations/oauth/start?provider=${p}`;
-  };
-
   /* ------------------------------ SYNC HANDLERS ----------------------------- */
 
-  const syncFrom = async (provider: string) => {
+  const syncFrom = async (provider: "google" | "outlook") => {
     setBusy(`sync:${provider}`);
     try {
       const res = await fetch("/api/integrations/sync", {
@@ -114,8 +109,7 @@ export default function IntegrationsPanel() {
   };
 
   const writeBlockToCalendar = async (provider: "google" | "outlook") => {
-    const tz =
-      Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
     const start = DateTime.now().setZone(tz);
     const end = start.plus({ minutes: 25 });
@@ -151,33 +145,32 @@ export default function IntegrationsPanel() {
 
   return (
     <section className="rounded-xl border dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/60 backdrop-blur p-4 shadow-sm mb-6">
-   <div className="flex items-center justify-between">
-  <div className="flex items-center gap-2">
-    <h2 className="text-base font-semibold text-indigo-700 dark:text-indigo-400">
-      Integrations
-    </h2>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-semibold text-indigo-700 dark:text-indigo-400">
+            Integrations
+          </h2>
 
-    {/* Resources pill */}
-    <a
-      href="#resources"
-      className="text-[11px] inline-flex items-center gap-1 rounded-full border px-2 py-0.5 
-                 border-indigo-300/70 text-indigo-700 dark:border-indigo-500/60 
-                 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 
-                 transition-colors"
-    >
-      Resources
-    </a>
-  </div>
+          {/* Resources pill */}
+          <a
+            href="#resources"
+            className="text-[11px] inline-flex items-center gap-1 rounded-full border px-2 py-0.5 
+                     border-indigo-300/70 text-indigo-700 dark:border-indigo-500/60 
+                     dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 
+                     transition-colors"
+          >
+            Resources
+          </a>
+        </div>
 
-  {!user && (
-    <span className="text-xs text-gray-500 dark:text-gray-400">
-      Sign in to connect
-    </span>
-  )}
-</div>
+        {!user && (
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            Sign in to connect
+          </span>
+        )}
+      </div>
 
-
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-3 mt-3">
         <Card
           title="Google (Tasks + Calendar)"
           onConnect={connectGoogle}
@@ -192,27 +185,6 @@ export default function IntegrationsPanel() {
           onSync={() => syncFrom("outlook")}
           onWrite={() => writeBlockToCalendar("outlook")}
           busy={busy?.startsWith("sync:outlook")}
-        />
-
-        <Card
-          title="Todoist"
-          onConnect={() => connectCustom("todoist")}
-          onSync={() => syncFrom("todoist")}
-          busy={busy?.startsWith("sync:todoist")}
-        />
-
-        <Card
-          title="Trello"
-          onConnect={() => connectCustom("trello")}
-          onSync={() => syncFrom("trello")}
-          busy={busy?.startsWith("sync:trello")}
-        />
-
-        <Card
-          title="Asana"
-          onConnect={() => connectCustom("asana")}
-          onSync={() => syncFrom("asana")}
-          busy={busy?.startsWith("sync:asana")}
         />
       </div>
 

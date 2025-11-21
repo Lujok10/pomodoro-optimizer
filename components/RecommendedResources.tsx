@@ -123,6 +123,11 @@ export default function RecommendedResourcesSection() {
           </article>
         ))}
       </div>
+
+      {/* Affiliate disclaimer */}
+      <p className="mt-4 text-[10px] text-gray-500 dark:text-gray-400">
+        Some links are affiliate links. If you buy through them, we may earn a small commission at no extra cost.
+      </p>
     </section>
   );
 }
