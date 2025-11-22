@@ -43,6 +43,8 @@ const EDITABLE_KEYS: { key: EditableKey; label: string; description?: string }[]
     },
   ];
 
+/* ----------------------------- Font choice ----------------------------- */
+
 const FONT_KEY = "optimapp_font_choice";
 
 type FontChoice = "default" | "large" | "serif" | "mono";
@@ -57,6 +59,66 @@ function applyFont(choice: FontChoice) {
     // ignore
   }
 }
+
+/* ----------------------------- Theme presets --------------------------- */
+
+type ThemePresetId = "indigo" | "slate" | "emerald" | "midnight";
+
+const THEME_PRESETS: {
+  id: ThemePresetId;
+  label: string;
+  description: string;
+  values: Record<EditableKey, string>;
+}[] = [
+  {
+    id: "indigo",
+    label: "Indigo Focus",
+    description: "Bright indigo primary with soft slate background.",
+    values: {
+      primary: "#4f46e5",
+      accent: "#22c55e",
+      bg: "#020617",
+      bgCard: "#020617",
+      text: "#e5e7eb",
+    },
+  },
+  {
+    id: "slate",
+    label: "Slate Minimal",
+    description: "Neutral slate UI, good for long reading sessions.",
+    values: {
+      primary: "#0f172a",
+      accent: "#38bdf8",
+      bg: "#020617",
+      bgCard: "#020617",
+      text: "#e5e7eb",
+    },
+  },
+  {
+    id: "emerald",
+    label: "Emerald Calm",
+    description: "Soft dark background with emerald highlights.",
+    values: {
+      primary: "#10b981",
+      accent: "#22c55e",
+      bg: "#020617",
+      bgCard: "#020617",
+      text: "#d1fae5",
+    },
+  },
+  {
+    id: "midnight",
+    label: "Midnight Pro",
+    description: "High contrast, deep dark theme for night focus.",
+    values: {
+      primary: "#6366f1",
+      accent: "#f97316",
+      bg: "#020617",
+      bgCard: "#020617",
+      text: "#e5e7eb",
+    },
+  },
+];
 
 // match keys used in page.tsx
 const SOUND_KEY = "focus_sound_enabled";
@@ -78,25 +140,6 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [autoNextEnabled, setAutoNextEnabled] = useState(true);
 
-  // font settings (moved inside component – hooks must not be at top level)
-  const [fontChoice, setFontChoice] = useState<FontChoice>("default");
-
-  useEffect(() => {
-    if (!open) return;
-
-    if (typeof window === "undefined") return;
-    try {
-      const saved = localStorage.getItem(FONT_KEY) as FontChoice | null;
-      const validChoices: FontChoice[] = ["default", "large", "serif", "mono"];
-      const initial = saved && validChoices.includes(saved) ? saved : "default";
-      setFontChoice(initial);
-      applyFont(initial);
-    } catch {
-      applyFont("default");
-      setFontChoice("default");
-    }
-  }, [open]);
-
   // local color state
   const [localValues, setLocalValues] = useState<Record<EditableKey, string>>({
     primary: tokens.primary,
@@ -105,6 +148,9 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
     bgCard: tokens.bgCard,
     text: tokens.text,
   });
+
+  // font choice
+  const [fontChoice, setFontChoice] = useState<FontChoice>("default");
 
   // sync when drawer opens
   useEffect(() => {
@@ -128,6 +174,20 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
         setAutoNextEnabled(a === "1");
       } catch {
         // ignore
+      }
+    }
+
+    // sync font choice from localStorage
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem(FONT_KEY) as FontChoice | null;
+        const validChoices: FontChoice[] = ["default", "large", "serif", "mono"];
+        const initial =
+          saved && validChoices.includes(saved) ? saved : "default";
+        setFontChoice(initial);
+        applyFont(initial);
+      } catch {
+        applyFont("default");
       }
     }
   }, [
@@ -172,6 +232,19 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
     }
   };
 
+  const applyPreset = (presetId: ThemePresetId) => {
+    const preset = THEME_PRESETS.find((p) => p.id === presetId);
+    if (!preset) return;
+    setTokens(preset.values);
+    setLocalValues(preset.values);
+  };
+
+  // 🔹 NEW: reset typography helper
+  const resetTypography = () => {
+    setFontChoice("default");
+    applyFont("default"); // sets html[data-font="default"] and saves to localStorage
+  };
+
   if (!open) return null;
 
   return (
@@ -182,10 +255,7 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
       aria-label="Settings"
     >
       {/* Backdrop */}
-      <div
-        className="flex-1 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="flex-1 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
       {/* Drawer */}
       <div className="w-full max-w-sm bg-white dark:bg-neutral-950 border-l border-neutral-200 dark:border-neutral-800 shadow-xl flex flex-col">
@@ -196,7 +266,7 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
               Settings
             </div>
             <div className="text-[11px] text-neutral-500 dark:text-neutral-400">
-              Focus behavior, appearance, and typography.
+              Focus behavior, theme, and typography.
             </div>
           </div>
           <button
@@ -253,6 +323,42 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
             </div>
           </section>
 
+          {/* Theme presets */}
+          <section>
+            <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-2">
+              Theme presets
+            </div>
+            <div className="space-y-2">
+              {THEME_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => applyPreset(preset.id)}
+                  className="w-full rounded-lg border border-neutral-200 dark:border-neutral-800 px-3 py-2 text-left text-xs hover:bg-neutral-50 dark:hover:bg-neutral-900/60 flex items-center justify-between gap-3"
+                >
+                  <div>
+                    <div className="font-semibold text-neutral-900 dark:text-neutral-50">
+                      {preset.label}
+                    </div>
+                    <div className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                      {preset.description}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span
+                      className="h-4 w-4 rounded-full border border-neutral-300 dark:border-neutral-700"
+                      style={{ backgroundColor: preset.values.primary }}
+                    />
+                    <span
+                      className="h-4 w-4 rounded-full border border-neutral-300 dark:border-neutral-700"
+                      style={{ backgroundColor: preset.values.accent }}
+                    />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+
           {/* Colors section */}
           <section>
             <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-2">
@@ -304,11 +410,11 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
 
           {/* Typography section */}
           <section className="mt-4 border-t border-neutral-800/40 pt-4">
-            <div className="text-xs font-semibold text-neutral-200 mb-2">
+            <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-200 mb-2">
               Typography
             </div>
 
-            <div className="space-y-2 text-xs text-neutral-300">
+            <div className="space-y-3 text-xs text-neutral-300">
               <div className="flex flex-wrap gap-2">
                 {(["default", "large", "serif", "mono"] as FontChoice[]).map(
                   (choice) => (
@@ -335,11 +441,20 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
                 )}
               </div>
 
-              <p className="text-[11px] text-neutral-400">
+              <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
                 Use <strong>Default</strong> for a clean UI,{" "}
                 <strong>Larger text</strong> for readability, or{" "}
                 <strong>Serif/Mono</strong> if you prefer a different feel.
               </p>
+
+              {/* 🔹 NEW: Reset typography button */}
+              <button
+                type="button"
+                onClick={resetTypography}
+                className="inline-flex items-center text-[11px] mt-1 rounded-md border border-neutral-700 px-2.5 py-1 hover:bg-neutral-900/60 text-neutral-200"
+              >
+                Reset typography to default
+              </button>
             </div>
           </section>
 
@@ -368,7 +483,8 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
                 Your day, tuned to impact
               </div>
               <div className="text-[11px] text-neutral-600 dark:text-neutral-300">
-                Adjust the palette and typography here and see it live across the app.
+                Adjust colors, theme, and typography here and see them live
+                across the app.
               </div>
             </div>
           </section>

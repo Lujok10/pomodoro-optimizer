@@ -1,10 +1,12 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ------------------------------------------------------------------ */
+/*  Base typography + visibility                                      */
+/* ------------------------------------------------------------------ */
 @layer base {
-  /* Base typography: slightly larger, heavier, higher contrast */
+  /* Slightly heavier, high-contrast defaults */
   html,
   body {
     @apply font-medium text-slate-800 dark:text-slate-100 antialiased;
@@ -16,9 +18,10 @@
   h3,
   h4 {
     @apply font-semibold text-slate-900 dark:text-white;
+    font-family: var(--app-heading-font-family, var(--app-font-family));
   }
 
-  /* Body text: more contrast */
+  /* Body text: a bit darker for readability */
   p,
   span,
   small,
@@ -27,61 +30,70 @@
     @apply text-slate-700 dark:text-slate-300;
   }
 
-  /* Small text: don’t let it get too thin */
+  /* Don’t let small text get too thin */
   .text-xs,
   .text-sm {
     @apply font-medium;
   }
 }
 
-
-/* Global “+1 step” font size using a CSS variable */
-:root {
-  --app-font-size: 15px; /* base body size (slightly larger than 14px) */
-}
+/* ------------------------------------------------------------------ */
+/*  Global typography variables                                       */
+/* ------------------------------------------------------------------ */
 
 /* Defaults */
 :root {
-  --app-font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
-    "Inter", sans-serif;
-  --app-font-size: 15px; /* from earlier */
+  --app-font-family: system-ui, -apple-system, BlinkMacSystemFont,
+    "SF Pro Text", "Inter", sans-serif;
+  --app-heading-font-family: var(--app-font-family);
+
+  /* Base body font size (slightly larger than 14px) */
+  --app-font-size: 15px;
 }
 
-/* Apply that size to the body */
-body {
-  font-size: var(--app-font-size);
-}
-
-/* Default: clean sans */
-html[data-font="default"] {
-  --app-font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
-    "Inter", sans-serif;
-}
-
-/* Slightly larger text */
-html[data-font="large"] {
-  --app-font-size: 16px;
-}
-
-
-/* Serif option */
-html[data-font="serif"] {
-  --app-font-family: ui-serif, Georgia, "Times New Roman", serif;
-}
-
-/* Mono option (for dev workflows) */
-html[data-font="mono"] {
-  --app-font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
-}
-
-/* Apply both family + size */
+/* Apply vars to body */
 body {
   font-family: var(--app-font-family);
   font-size: var(--app-font-size);
 }
 
-/* Better font smoothing cross-platform (D) */
+/* ------------------------------------------------------------------ */
+/*  Font presets via data-font on <html>                              */
+/* ------------------------------------------------------------------ */
+
+/* Default: clean sans */
+html[data-font="default"] {
+  --app-font-family: system-ui, -apple-system, BlinkMacSystemFont,
+    "SF Pro Text", "Inter", sans-serif;
+  --app-heading-font-family: var(--app-font-family);
+  --app-font-size: 15px;
+}
+
+/* Slightly larger text */
+html[data-font="large"] {
+  --app-font-family: system-ui, -apple-system, BlinkMacSystemFont,
+    "SF Pro Text", "Inter", sans-serif;
+  --app-heading-font-family: var(--app-font-family);
+  --app-font-size: 16px;
+}
+
+/* Serif option */
+html[data-font="serif"] {
+  --app-font-family: ui-serif, Georgia, "Times New Roman", serif;
+  --app-heading-font-family: var(--app-font-family);
+}
+
+/* Mono option (for dev / focus workflows) */
+html[data-font="mono"] {
+  --app-font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  --app-heading-font-family: var(--app-font-family);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Smoothing / rendering                                             */
+/* ------------------------------------------------------------------ */
+
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -94,25 +106,3 @@ html {
     text-rendering: geometricPrecision;
   }
 }
-
-
-/* Increase default font weight and visibility globally */
-/* html, body {
-  @apply font-medium text-slate-800 dark:text-slate-100;
-
-  
-}
-
-h1, h2, h3, h4 {
-  @apply font-semibold text-slate-900 dark:text-white;
-}
-
-p, span, small, li, label {
-  @apply text-slate-700 dark:text-slate-300;
-}
-
-.text-xs, .text-sm {
-  @apply font-medium;
-} */
-
-
