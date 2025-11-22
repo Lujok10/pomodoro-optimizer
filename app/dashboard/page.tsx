@@ -74,148 +74,247 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 md:px-6 py-6 space-y-6">
-      {/* Header */}
+      {/* Header / hero */}
       <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-            80/20 Focus dashboard
+            Your 80/20 effectiveness dashboard
           </h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Plan, focus, and learn from your day with{" "}
-            <span className="font-semibold">80/20 focus blocks.</span>
-          </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            This dashboard overlays{" "}
-            <span className="font-semibold">Efficiency + Impact</span> on your
-            recent focus blocks so you can see what truly moved the needle.
+            See how your{" "}
+            <span className="font-medium">top 20% of effort</span> turns into{" "}
+            <span className="font-medium">80% of results</span>. We overlay{" "}
+            <span className="font-semibold">Efficiency × Impact</span> on your
+            focus blocks so you can move from{" "}
+            <span className="font-medium">busy</span> →{" "}
+            <span className="font-medium">productive</span> →{" "}
+            <span className="font-medium">impactful</span>.
           </p>
         </div>
 
         <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/70 dark:border-emerald-500/60 bg-emerald-50/70 dark:bg-emerald-900/30 px-3 py-1 text-xs text-emerald-800 dark:text-emerald-200">
           <HeartPulse className="w-4 h-4" />
-          <span>Impact productivity · 80/20 Focus</span>
+          <span>Impact productivity · Focus 20</span>
         </div>
       </header>
 
-      {/* Quote / focus cue carousel */}
-      <section aria-label="Focus cues" className="mt-1">
+      {/* Focus quote / cue */}
+      <section
+        aria-label="Focus cue"
+        className="rounded-xl border dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-4 shadow-sm"
+      >
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <Flame className="w-4 h-4 text-amber-600 dark:text-amber-300" />
+            <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              Today&apos;s focus cue
+            </h2>
+          </div>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400">
+            One small reminder to protect your 20% time.
+          </span>
+        </div>
         <QuoteCarousel />
       </section>
 
-      {/* Today-ish summary (recent blocks) */}
-      <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-xl border dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-4 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
+      {/* STEP 1 — Today at a glance */}
+      <section aria-label="Today summary" className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Step 1 · Today at a glance
+          </h2>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400">
+            How much focus time you’ve invested, and how effective it was.
+          </span>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl border dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-4 shadow-sm flex flex-col justify-between">
+            <div className="flex items-center gap-2 mb-2">
               <Clock className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                 Focus time (recent)
-              </h2>
+              </h3>
             </div>
-          </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-slate-50">
-            {Math.floor(totalMinutes / 60)}h {totalMinutes % 60}m
-          </div>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Based on your latest completed 80/20 focus blocks.
-          </p>
-        </div>
-
-        <div className="rounded-xl border dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-4 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <ListChecks className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                Completed blocks
-              </h2>
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-50">
+              {Math.floor(totalMinutes / 60)}h {totalMinutes % 60}m
             </div>
-          </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-slate-50">
-            {totalBlocks}
-          </div>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {effectiveBlocks} marked as{" "}
-            <span className="font-medium">“moved the needle”</span>.
-          </p>
-        </div>
-
-        <div className="rounded-xl border dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-4 shadow-sm flex items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Flame className="w-4 h-4 text-amber-600 dark:text-amber-300" />
-              <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                Effectiveness score
-              </h2>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Based on Efficiency × Impact from your focus blocks.
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              Based on your latest completed focus blocks.
             </p>
           </div>
-          <EffectivenessDonut value={effectivenessClamped} />
+
+          <div className="rounded-xl border dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-4 shadow-sm flex flex-col justify-between">
+            <div className="flex items-center gap-2 mb-2">
+              <ListChecks className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                Completed blocks
+              </h3>
+            </div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-50">
+              {totalBlocks}
+            </div>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {effectiveBlocks} marked as{" "}
+              <span className="font-medium">“moved the needle”</span>.
+            </p>
+          </div>
+
+          <div className="rounded-xl border dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-4 shadow-sm flex items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Flame className="w-4 h-4 text-amber-600 dark:text-amber-300" />
+                <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                  Effectiveness score
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Efficiency × Impact from your recent focus blocks.
+              </p>
+            </div>
+            <EffectivenessDonut value={effectivenessClamped} />
+          </div>
         </div>
       </section>
 
-      {/* Flow diagram + formulas */}
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr),minmax(0,0.9fr)]">
-        <div className="rounded-xl border dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <Activity className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-            <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-              Efficiency + Impact → Effectiveness
-            </h2>
-          </div>
-          <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
-            OptimApp doesn&apos;t just track time. It measures how well your
-            time turns into outcomes so you can spend your 20% on what truly
-            matters.
+      {/* STEP 2 & 3 — Top 20% tasks + Time vs value */}
+      <section className="space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Step 2 · Top 20% tasks &nbsp;·&nbsp; Step 3 · Time vs value
+          </h2>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            Which tasks keep paying off, and how your time lines up with their
+            potential value.
           </p>
-
-          <div className="grid gap-3 md:grid-cols-3 mb-4">
-            <FormulaCard
-              label="Efficiency"
-              desc="Outputs ÷ Inputs"
-              detail={`${totalBlocks || 0} blocks ÷ ${totalMinutes || 0} minutes`}
-              value={`${efficiencyTasksPerHour.toFixed(2)} tasks/hr`}
-            />
-            <FormulaCard
-              label="Impact"
-              desc="Outcomes Achieved ÷ Outcomes Possible"
-              detail={`${outcomesAchieved}/${outcomesPossible} blocks moved the needle`}
-              value={`${Math.round(impactRatio * 100) || 0}%`}
-            />
-            <FormulaCard
-              label="Effectiveness"
-              desc="Efficiency × Impact"
-              detail="Normalized against a 1 task/hr baseline"
-              value={`${effectivenessClamped || 0}%`}
-              highlight
-            />
-          </div>
-
-          <FlowDiagram />
         </div>
 
-        <div className="rounded-xl border dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-4 shadow-sm flex flex-col">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <TopTwentyTasksPanel
+            completedTasks={completedTasks}
+            feedbackMap={feedbackMap}
+          />
+          <TimeVsValuePanel tasks={completedTasks} />
+        </div>
+      </section>
+
+      {/* STEP 4 — How we calculate Effectiveness (formulas + flow) */}
+      <section className="space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Step 4 · How Focus 20 measures Effectiveness
+          </h2>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            We don&apos;t just track hours. We track how well those hours become
+            outcomes.
+          </p>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr),minmax(0,0.9fr)]">
+          <div className="rounded-xl border dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Activity className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                Efficiency + Impact → Effectiveness
+              </h3>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
+              Focus 20 layers simple formulas on top of your day:
+              <br />
+              <span className="font-medium">Efficiency</span> (outputs ÷ inputs)
+              and <span className="font-medium">Impact</span> (outcomes achieved
+              ÷ outcomes possible). Multiply them to get your{" "}
+              <span className="font-medium">Effectiveness</span>.
+            </p>
+
+            <div className="grid gap-3 md:grid-cols-3 mb-4">
+              <FormulaCard
+                label="Efficiency"
+                desc="Outputs ÷ Inputs"
+                detail={`${totalBlocks || 0} blocks ÷ ${totalMinutes || 0} minutes`}
+                value={`${efficiencyTasksPerHour.toFixed(2)} tasks/hr`}
+              />
+              <FormulaCard
+                label="Impact"
+                desc="Outcomes Achieved ÷ Outcomes Possible"
+                detail={`${outcomesAchieved}/${outcomesPossible} blocks moved the needle`}
+                value={`${Math.round(impactRatio * 100) || 0}%`}
+              />
+              <FormulaCard
+                label="Effectiveness"
+                desc="Efficiency × Impact"
+                detail="Normalized against a 1 task/hr baseline"
+                value={`${effectivenessClamped || 0}%`}
+                highlight
+              />
+            </div>
+
+            <FlowDiagram />
+          </div>
+
+          {/* Right column left open for future “explainers” / tips if you want */}
+          <div className="rounded-xl border dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-4 shadow-sm text-xs text-slate-600 dark:text-slate-300 flex flex-col gap-2">
+            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-1">
+              How to read this
+            </h3>
+            <ul className="list-disc list-inside space-y-1">
+              <li>
+                <span className="font-medium">Efficiency</span> goes up when you
+                complete more blocks per hour.
+              </li>
+              <li>
+                <span className="font-medium">Impact</span> goes up when more
+                blocks are marked “moved the needle”.
+              </li>
+              <li>
+                <span className="font-medium">Effectiveness</span> rewards both
+                quality and volume — not just being busy.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* STEP 5 — Where this data comes from (integrations + comparison) */}
+      <section className="space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Step 5 · Where your effectiveness data comes from
+          </h2>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            Focus 20 overlays Efficiency + Impact on top of the tools you
+            already use.
+          </p>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr),minmax(0,0.9fr)]">
+          <IntegrationsDiagram />
+          <ImpactComparisonTable />
+        </div>
+      </section>
+
+      {/* Weekly impact report — screenshot friendly */}
+      <section className="space-y-3" aria-label="Weekly impact report">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            This week&apos;s impact report
+          </h2>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            A snapshot of your week you can screenshot or share with your team.
+          </p>
+        </div>
+
+        <div className="rounded-xl border dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 p-4 shadow-sm">
           <WeeklyReportSummary
             completedTasks={completedTasks}
             feedbackMap={feedbackMap}
           />
+
+          <p className="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
+            Tip: Zoom your browser out a bit and screenshot this card to share
+            your weekly 80/20 impact.
+          </p>
         </div>
-      </section>
-
-      {/* Top 20% tasks + time vs value */}
-      <section className="grid gap-4 lg:grid-cols-2">
-        <TopTwentyTasksPanel
-          completedTasks={completedTasks}
-          feedbackMap={feedbackMap}
-        />
-        <TimeVsValuePanel tasks={completedTasks} />
-      </section>
-
-      {/* Integrations + comparison */}
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr),minmax(0,0.9fr)]">
-        <IntegrationsDiagram />
-        <ImpactComparisonTable />
       </section>
     </div>
   );
@@ -361,12 +460,12 @@ function TopTwentyTasksPanel({
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-          <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
             Top 20% tasks
-          </h2>
+          </h3>
         </div>
         <span className="text-[11px] text-slate-500 dark:text-slate-400">
-          Based on impact + “moved the needle”
+          Based on impact + “moved the needle”.
         </span>
       </div>
 
@@ -412,17 +511,17 @@ function TimeVsValuePanel({ tasks }: { tasks: Task[] }) {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Activity className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-          <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
             Time vs value (recent)
-          </h2>
+          </h3>
         </div>
         <span className="text-[11px] text-slate-500 dark:text-slate-400">
-          Conceptual view
+          Conceptual view of effort vs potential.
         </span>
       </div>
 
       <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
-        Rough sense of how your time is spread versus the potential value of
+        A rough sense of how your time is spread versus the potential value of
         your tasks.
       </p>
 

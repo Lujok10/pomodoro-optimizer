@@ -1,8 +1,118 @@
-@tailwind base;@tailwind components;@tailwind utilities; body{@apply bg-gray-50;}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* optional: tiny niceties */
-html, body { height: 100%; }
-body { @apply antialiased; }
+@layer base {
+  /* Base typography: slightly larger, heavier, higher contrast */
+  html,
+  body {
+    @apply font-medium text-slate-800 dark:text-slate-100 antialiased;
+  }
+
+  /* Headings: thicker + more contrast */
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-semibold text-slate-900 dark:text-white;
+  }
+
+  /* Body text: more contrast */
+  p,
+  span,
+  small,
+  li,
+  label {
+    @apply text-slate-700 dark:text-slate-300;
+  }
+
+  /* Small text: don’t let it get too thin */
+  .text-xs,
+  .text-sm {
+    @apply font-medium;
+  }
+}
+
+
+/* Global “+1 step” font size using a CSS variable */
+:root {
+  --app-font-size: 15px; /* base body size (slightly larger than 14px) */
+}
+
+/* Defaults */
+:root {
+  --app-font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "Inter", sans-serif;
+  --app-font-size: 15px; /* from earlier */
+}
+
+/* Apply that size to the body */
+body {
+  font-size: var(--app-font-size);
+}
+
+/* Default: clean sans */
+html[data-font="default"] {
+  --app-font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "Inter", sans-serif;
+}
+
+/* Slightly larger text */
+html[data-font="large"] {
+  --app-font-size: 16px;
+}
+
+
+/* Serif option */
+html[data-font="serif"] {
+  --app-font-family: ui-serif, Georgia, "Times New Roman", serif;
+}
+
+/* Mono option (for dev workflows) */
+html[data-font="mono"] {
+  --app-font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+/* Apply both family + size */
+body {
+  font-family: var(--app-font-family);
+  font-size: var(--app-font-size);
+}
+
+/* Better font smoothing cross-platform (D) */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* High-DPI / Retina screens: slightly sharper text rendering */
+@media (min-resolution: 2dppx) {
+  html {
+    text-rendering: geometricPrecision;
+  }
+}
+
+
+/* Increase default font weight and visibility globally */
+/* html, body {
+  @apply font-medium text-slate-800 dark:text-slate-100;
+
+  
+}
+
+h1, h2, h3, h4 {
+  @apply font-semibold text-slate-900 dark:text-white;
+}
+
+p, span, small, li, label {
+  @apply text-slate-700 dark:text-slate-300;
+}
+
+.text-xs, .text-sm {
+  @apply font-medium;
+} */
+
+

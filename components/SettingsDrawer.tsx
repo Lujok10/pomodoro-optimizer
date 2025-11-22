@@ -43,6 +43,21 @@ const EDITABLE_KEYS: { key: EditableKey; label: string; description?: string }[]
     },
   ];
 
+const FONT_KEY = "optimapp_font_choice";
+
+type FontChoice = "default" | "large" | "serif" | "mono";
+
+function applyFont(choice: FontChoice) {
+  if (typeof document === "undefined") return;
+  const html = document.documentElement;
+  html.dataset.font = choice;
+  try {
+    localStorage.setItem(FONT_KEY, choice);
+  } catch {
+    // ignore
+  }
+}
+
 // match keys used in page.tsx
 const SOUND_KEY = "focus_sound_enabled";
 const AUTONEXT_KEY = "focus_auto_next";
@@ -62,6 +77,25 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
   // behavior settings
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [autoNextEnabled, setAutoNextEnabled] = useState(true);
+
+  // font settings (moved inside component – hooks must not be at top level)
+  const [fontChoice, setFontChoice] = useState<FontChoice>("default");
+
+  useEffect(() => {
+    if (!open) return;
+
+    if (typeof window === "undefined") return;
+    try {
+      const saved = localStorage.getItem(FONT_KEY) as FontChoice | null;
+      const validChoices: FontChoice[] = ["default", "large", "serif", "mono"];
+      const initial = saved && validChoices.includes(saved) ? saved : "default";
+      setFontChoice(initial);
+      applyFont(initial);
+    } catch {
+      applyFont("default");
+      setFontChoice("default");
+    }
+  }, [open]);
 
   // local color state
   const [localValues, setLocalValues] = useState<Record<EditableKey, string>>({
@@ -162,7 +196,7 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
               Settings
             </div>
             <div className="text-[11px] text-neutral-500 dark:text-neutral-400">
-              Focus behavior and appearance.
+              Focus behavior, appearance, and typography.
             </div>
           </div>
           <button
@@ -268,6 +302,47 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
             </div>
           </section>
 
+          {/* Typography section */}
+          <section className="mt-4 border-t border-neutral-800/40 pt-4">
+            <div className="text-xs font-semibold text-neutral-200 mb-2">
+              Typography
+            </div>
+
+            <div className="space-y-2 text-xs text-neutral-300">
+              <div className="flex flex-wrap gap-2">
+                {(["default", "large", "serif", "mono"] as FontChoice[]).map(
+                  (choice) => (
+                    <button
+                      key={choice}
+                      type="button"
+                      onClick={() => {
+                        setFontChoice(choice);
+                        applyFont(choice);
+                      }}
+                      className={`px-2.5 py-1.5 rounded-md border text-[11px] transition
+                        ${
+                          fontChoice === choice
+                            ? "border-indigo-400 bg-indigo-500/10 text-indigo-100"
+                            : "border-neutral-700 bg-neutral-900/60 text-neutral-300 hover:bg-neutral-800"
+                        }`}
+                    >
+                      {choice === "default" && "Default"}
+                      {choice === "large" && "Larger text"}
+                      {choice === "serif" && "Serif"}
+                      {choice === "mono" && "Mono"}
+                    </button>
+                  ),
+                )}
+              </div>
+
+              <p className="text-[11px] text-neutral-400">
+                Use <strong>Default</strong> for a clean UI,{" "}
+                <strong>Larger text</strong> for readability, or{" "}
+                <strong>Serif/Mono</strong> if you prefer a different feel.
+              </p>
+            </div>
+          </section>
+
           {/* Preview */}
           <section className="pt-2 border-t border-dashed border-neutral-200 dark:border-neutral-800">
             <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-2">
@@ -293,7 +368,7 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
                 Your day, tuned to impact
               </div>
               <div className="text-[11px] text-neutral-600 dark:text-neutral-300">
-                Adjust the palette here and see it live across the app.
+                Adjust the palette and typography here and see it live across the app.
               </div>
             </div>
           </section>

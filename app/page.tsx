@@ -1,4 +1,3 @@
-// app/page.tsx
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -21,7 +20,7 @@ import {
   MessageCircle as MessageCircleIcon,
   FileText as FileTextIcon,
   X,
-  ChevronRight, // ⬅️ added for hero button
+  ChevronRight,
 } from "lucide-react";
 
 import ProGate from "../components/ProGate";
@@ -74,7 +73,7 @@ const FIRST_RUN_KEY = "pom_onboarded_v1";
 /** Settings keys + sound */
 const SOUND_KEY = "focus_sound_enabled";
 const AUTONEXT_KEY = "focus_auto_next";
-const BEEP_SRC = "/sounds/focus-chime.mp3";
+const BEEP_SRC = "/sounds/focus-chime.wav";
 
 /** YYYY-MM-DD in local time */
 function todayStr(d = new Date()) {
@@ -186,7 +185,9 @@ function PageInner() {
 
   const [minutes, setMinutes] = useHydratedState<number>(0, () => {
     const v =
-      typeof window !== "undefined" ? localStorage.getItem("pom_minutes") : null;
+      typeof window !== "undefined"
+        ? localStorage.getItem("pom_minutes")
+        : null;
     return v != null ? Number(v) || 0 : 0;
   });
 
@@ -238,20 +239,19 @@ function PageInner() {
     };
   }, [user]);
 
-  const [feedbackMap, setFeedbackMap] = useHydratedState<Record<number, Feedback>>(
-    {},
-    () => {
-      try {
-        return JSON.parse(
-          typeof window !== "undefined"
-            ? localStorage.getItem(FEEDBACK_KEY) || "{}"
-            : "{}",
-        );
-      } catch {
-        return {};
-      }
-    },
-  );
+  const [feedbackMap, setFeedbackMap] = useHydratedState<
+    Record<number, Feedback>
+  >({}, () => {
+    try {
+      return JSON.parse(
+        typeof window !== "undefined"
+          ? localStorage.getItem(FEEDBACK_KEY) || "{}"
+          : "{}",
+      );
+    } catch {
+      return {};
+    }
+  });
 
   useEffect(() => {
     try {
@@ -259,29 +259,111 @@ function PageInner() {
     } catch {}
   }, [feedbackMap]);
 
+  const [celebrate, setCelebrate] = useState<null | { taskName: string }>(null);
   const [suggestedPlan, setSuggestedPlan] = useState<Task[]>([]);
   const [focusPlan, setFocusPlan] = useState<Task[]>([]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [isRunning, setIsRunning] = useState<boolean>(false);
-
-  const [completedTasks, setCompletedTasks] = useHydratedState<Task[]>([], () => {
+  const beepRef = useRef<HTMLAudioElement | null>(null);
+  // Prepare beep audio after the first user click (satisfies autoplay rules)
+useEffect(() => {
+  function handleFirstInteraction() {
     try {
-      return JSON.parse(
-        typeof window !== "undefined"
-          ? localStorage.getItem("pom_completed_v1") || "[]"
-          : "[]",
-      );
-    } catch {
-      return [];
+      if (!beepRef.current) {
+        const el = new Audio(BEEP_SRC);
+        el.volume = 1.0;
+        beepRef.current = el;
+      }
+
+      // "Prime" the audio: play then immediately pause & reset
+      beepRef.current
+        .play()
+        .then(() => {
+          beepRef.current?.pause();
+          if (beepRef.current) beepRef.current.currentTime = 0;
+        })
+        .catch((err) => {
+          console.warn("Beep priming failed:", err);
+        })
+        .finally(() => {
+          window.removeEventListener("click", handleFirstInteraction);
+        });
+    } catch (e) {
+      console.warn("Beep setup error:", e);
+      window.removeEventListener("click", handleFirstInteraction);
     }
-  });
+  }
+
+  window.addEventListener("click", handleFirstInteraction, { once: true });
+  return () => window.removeEventListener("click", handleFirstInteraction);
+}, []);
+
+  const [completedTasks, setCompletedTasks] = useHydratedState<Task[]>(
+    [],
+    () => {
+      try {
+        return JSON.parse(
+          typeof window !== "undefined"
+            ? localStorage.getItem("pom_completed_v1") || "[]"
+            : "[]",
+        );
+      } catch {
+        return [];
+      }
+    },
+  );
+
+// // Prepare beep audio after the first user click (satisfies autoplay rules)
+// useEffect(() => {
+//   function handleFirstInteraction() {
+//     try {
+//       if (!beepRef.current) {
+//         beepRef.current = new Audio(BEEP_SRC);
+//       }
+//       beepRef.current.volume = 1;
+
+//       // "Prime" the audio: play then immediately pause & reset
+//       beepRef.current
+//         .play()
+//         .then(() => {
+//           beepRef.current?.pause();
+//           if (beepRef.current) beepRef.current.currentTime = 0;
+//         })
+//         .catch((err) => {
+//           console.warn("Beep priming failed:", err);
+//         })
+//         .finally(() => {
+//           window.removeEventListener("click", handleFirstInteraction);
+//         });
+//     } catch (e) {
+//       console.warn("Beep setup error:", e);
+//       window.removeEventListener("click", handleFirstInteraction);
+//     }
+//   }
+
+//   window.addEventListener("click", handleFirstInteraction, { once: true });
+//   return () => window.removeEventListener("click", handleFirstInteraction);
+// }, []);
+
+
 
   useEffect(() => {
     try {
       localStorage.setItem("pom_completed_v1", JSON.stringify(completedTasks));
     } catch {}
   }, [completedTasks]);
+
+  // Preload beep sound
+  useEffect(() => {
+    try {
+      const el = new Audio(BEEP_SRC);
+      el.volume = 1.0;
+      beepRef.current = el;
+    } catch {
+      // ignore
+    }
+  }, []);
 
   /** ---------- Derived values ---------- */
   const totalAvailableMinutes = Math.max(0, hours * 60 + minutes);
@@ -298,16 +380,19 @@ function PageInner() {
   /** ---------- Settings ---------- */
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [autoNext, setAutoNext] = useState<boolean>(true);
-  const [soundOnEnd, setSoundOnEnd] = useState<boolean>(false);
+  const [soundOnEnd, setSoundOnEnd] = useState<boolean>(true);
 
-  useEffect(() => {
-    try {
-      setAutoNext((localStorage.getItem(AUTONEXT_KEY) ?? "1") === "1");
-    } catch {}
-    try {
-      setSoundOnEnd((localStorage.getItem(SOUND_KEY) ?? "0") === "1");
-    } catch {}
-  }, []);
+    useEffect(() => {
+      try {
+        setAutoNext((localStorage.getItem(AUTONEXT_KEY) ?? "1") === "1");
+      } catch {}
+      try {
+        const stored = localStorage.getItem(SOUND_KEY);
+        // Default to ON if nothing stored yet
+        setSoundOnEnd(stored == null ? true : stored === "1");
+      } catch {}
+    }, []);
+
 
   /** ---------- Plan fitting ---------- */
   function fitPlanToTarget(
@@ -329,7 +414,7 @@ function PageInner() {
         const eBoost = Math.max(0.6, Math.min(1.4, 1 + 0.2 * (energy - 3)));
         return { ...t, __rank: base * eBoost };
       })
-      .sort((a, b) => b.__rank! - a.__rank!);
+      .sort((a, b) => (b.__rank! - a.__rank!));
 
     const plan: Task[] = [];
     let used = 0;
@@ -371,9 +456,11 @@ function PageInner() {
   const remainingRef = useRef<number>(0);
   const wakeLockRef = useRef<any>(null);
 
+  // update remaining time when active task changes
   useEffect(() => {
     if (activeIndex !== null && focusPlan[activeIndex]) {
-      remainingRef.current = timeLeft || focusPlan[activeIndex].duration * 60;
+      remainingRef.current =
+        timeLeft || focusPlan[activeIndex].duration * 60;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex, focusPlan]);
@@ -388,66 +475,79 @@ function PageInner() {
             "screen",
           );
         }
-      } catch {}
+      } catch {
+        // ignore
+      }
     }
+
     function releaseWakeLock() {
       try {
         wakeLockRef.current?.release?.();
-      } catch {}
+      } catch {
+        // ignore
+      }
       wakeLockRef.current = null;
     }
 
-    function startTicking() {
-      startedAtRef.current = performance.now();
-      if (
-        remainingRef.current <= 0 &&
-        activeIndex !== null &&
-        focusPlan[activeIndex]
-      ) {
-        remainingRef.current = focusPlan[activeIndex].duration * 60;
-      }
-      intervalId = window.setInterval(() => {
-        if (!startedAtRef.current) return;
-        const elapsedSec = (performance.now() - startedAtRef.current) / 1000;
-        const remain = Math.max(0, Math.ceil(remainingRef.current - elapsedSec));
-        setTimeLeft(remain);
-        if (remain <= 0) pauseTicking();
-      }, 500);
-      requestWakeLock();
-    }
-
     function pauseTicking() {
-      if (intervalId != null) clearInterval(intervalId);
-      intervalId = null;
+      if (intervalId != null) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
       if (startedAtRef.current != null) {
         const elapsedSec = (performance.now() - startedAtRef.current) / 1000;
-        remainingRef.current = Math.max(0, remainingRef.current - elapsedSec);
+        remainingRef.current = Math.max(
+          0,
+          remainingRef.current - elapsedSec,
+        );
       }
       startedAtRef.current = null;
       releaseWakeLock();
     }
 
+    function startTicking() {
+      startedAtRef.current = performance.now();
+      intervalId = window.setInterval(() => {
+        if (startedAtRef.current == null) return;
+        const elapsedSec = (performance.now() - startedAtRef.current) / 1000;
+        const remain = Math.max(
+          0,
+          Math.ceil(remainingRef.current - elapsedSec),
+        );
+        setTimeLeft(remain);
+        if (remain <= 0) {
+          pauseTicking();
+        }
+      }, 500);
+      requestWakeLock();
+    }
+
     function onVisibility() {
       if (document.hidden && startedAtRef.current != null) {
         const elapsedSec = (performance.now() - startedAtRef.current) / 1000;
-        remainingRef.current = Math.max(0, remainingRef.current - elapsedSec);
+        remainingRef.current = Math.max(
+          0,
+          remainingRef.current - elapsedSec,
+        );
         startedAtRef.current = performance.now();
       }
     }
 
+    document.addEventListener("visibilitychange", onVisibility);
+
     if (isRunning && activeIndex !== null && focusPlan[activeIndex]) {
+      if (remainingRef.current <= 0) {
+        remainingRef.current =
+          timeLeft || focusPlan[activeIndex].duration * 60;
+      }
       startTicking();
-      document.addEventListener("visibilitychange", onVisibility);
-    } else {
-      pauseTicking();
     }
 
     return () => {
       pauseTicking();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRunning, activeIndex, focusPlan]);
+  }, [isRunning, activeIndex, focusPlan, timeLeft]);
 
   /** ---------- A11y live area ---------- */
   const [srMessage, setSrMessage] = useState<string>("");
@@ -468,66 +568,82 @@ function PageInner() {
       );
     }
     setSrMessage(
-      `Feedback recorded: ${answer === "yes" ? "Moved the needle" : "Not really"}.`,
+      `Feedback recorded: ${
+        answer === "yes" ? "Moved the needle" : "Not really"
+      }.`,
     );
     return answer;
   };
 
   /** ---------- On block finish ---------- */
-  useEffect(() => {
-    if (timeLeft <= 0 && isRunning && activeIndex !== null) {
-      const finished = focusPlan[activeIndex];
-      if (finished) {
-        setCompletedTasks((prev) => [finished, ...prev]);
+ useEffect(() => {
+  if (timeLeft <= 0 && isRunning && activeIndex !== null) {
+    const finished = focusPlan[activeIndex];
 
-        if (soundOnEnd) {
-          try {
-            new Audio(BEEP_SRC).play();
-          } catch {}
-        }
+    if (finished) {
+      // 1) Mark task completed
+      setCompletedTasks((prev) => [finished, ...prev]);
 
-        const fb = askFeedback(finished);
+      // 2) Play beep if enabled
+      if (soundOnEnd && beepRef.current) {
         try {
-          appendSessionFromTask(
-            {
-              id: finished.id,
-              project: (finished as any).project,
-              duration: finished.duration,
-              name: finished.name,
-            },
-            fb,
-          );
-          const { current } = computeStreaks();
-          setStreakDays(current);
-        } catch {
-          notify(
-            "error",
-            "Session log failed",
-            "We couldn’t log this block to history.",
-          );
+          beepRef.current.currentTime = 0;
+          beepRef.current
+            .play()
+            .catch((err) =>
+              console.warn("Beep playback blocked or failed:", err),
+            );
+        } catch (e) {
+          console.warn("Beep play error:", e);
         }
       }
-      const nextIndex = (activeIndex ?? 0) + 1;
-      if (focusPlan[nextIndex]) {
-        setActiveIndex(nextIndex);
-        setTimeLeft(focusPlan[nextIndex].duration * 60);
-        setIsRunning(true);
-      } else {
-        setActiveIndex(null);
-        setIsRunning(false);
-        setTimeLeft(0);
+
+      // 3) Ask for feedback + log session + streak
+      const fb = askFeedback(finished);
+      try {
+        appendSessionFromTask(
+          {
+            id: finished.id,
+            project: (finished as any).project,
+            duration: finished.duration,
+            name: finished.name,
+          },
+          fb,
+        );
+        const { current } = computeStreaks();
+        setStreakDays(current);
+      } catch {
+        notify(
+          "error",
+          "Session log failed",
+          "We couldn’t log this block to history.",
+        );
       }
     }
-  }, [
-    timeLeft,
-    isRunning,
-    activeIndex,
-    focusPlan,
-    setStreakDays,
-    soundOnEnd,
-    notify,
-    askFeedback,
-  ]);
+
+    // 4) Move to next task or stop
+    const nextIndex = (activeIndex ?? 0) + 1;
+    if (focusPlan[nextIndex]) {
+      setActiveIndex(nextIndex);
+      setTimeLeft(focusPlan[nextIndex].duration * 60);
+      setIsRunning(true);
+    } else {
+      setActiveIndex(null);
+      setIsRunning(false);
+      setTimeLeft(0);
+    }
+  }
+}, [
+  timeLeft,
+  isRunning,
+  activeIndex,
+  focusPlan,
+  setCompletedTasks,
+  setStreakDays,
+  soundOnEnd,
+  notify,
+  askFeedback,
+]);
 
   /** ---------- Shortcuts ---------- */
   useEffect(() => {
@@ -598,7 +714,9 @@ function PageInner() {
   function savePlanTomorrow() {
     const plan = fitPlanToTarget(tasks, targetMinutes, userEnergy);
     const payload = {
-      date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      date: new Date(Date.now() + 24 * 60 * 60 * 1000)
+        .toISOString()
+        .slice(0, 10),
       targetMinutes,
       taskIds: plan.map((t) => t.id),
     };
@@ -651,7 +769,11 @@ function PageInner() {
     const finalPlan =
       chosen.length > 0
         ? chosen
-        : fitPlanToTarget(tasks, tomorrowPlanReady.targetMinutes, userEnergy);
+        : fitPlanToTarget(
+            tasks,
+            tomorrowPlanReady.targetMinutes,
+            userEnergy,
+          );
 
     const pct =
       focusTargetMinutes > 0
@@ -659,7 +781,9 @@ function PageInner() {
             50,
             Math.min(
               150,
-              Math.round((tomorrowPlanReady.targetMinutes / focusTargetMinutes) * 100),
+              Math.round(
+                (tomorrowPlanReady.targetMinutes / focusTargetMinutes) * 100,
+              ),
             ),
           )
         : 100;
@@ -800,7 +924,11 @@ function PageInner() {
       id: Date.now() + Math.floor(Math.random() * 100000),
     }));
     setTasks(stamped);
-    notify("success", "Sample tasks added", "You can edit or delete them anytime.");
+    notify(
+      "success",
+      "Sample tasks added",
+      "You can edit or delete them anytime.",
+    );
   };
 
   const completeOnboarding = () => {
@@ -838,10 +966,16 @@ function PageInner() {
       localStorage.setItem("pom_tasks", JSON.stringify(tasksPayload));
     } catch {}
     try {
-      localStorage.setItem("pom_completed_v1", JSON.stringify(completedPayload));
+      localStorage.setItem(
+        "pom_completed_v1",
+        JSON.stringify(completedPayload),
+      );
     } catch {}
     try {
-      localStorage.setItem("pom_feedback_v1", JSON.stringify(feedbackPayload));
+      localStorage.setItem(
+        "pom_feedback_v1",
+        JSON.stringify(feedbackPayload),
+      );
     } catch {}
     try {
       localStorage.setItem("pom_hours", String(hoursPayload));
@@ -862,9 +996,13 @@ function PageInner() {
     }
 
     setTasks(Array.isArray(tasksPayload) ? tasksPayload : []);
-    setCompletedTasks(Array.isArray(completedPayload) ? completedPayload : []);
+    setCompletedTasks(
+      Array.isArray(completedPayload) ? completedPayload : [],
+    );
     setFeedbackMap(
-      typeof feedbackPayload === "object" && feedbackPayload ? feedbackPayload : {},
+      typeof feedbackPayload === "object" && feedbackPayload
+        ? feedbackPayload
+        : {},
     );
     setHours(Math.max(0, Math.min(24, Number(hoursPayload) || 0)));
     setMinutes(Math.max(0, Math.min(59, Number(minutesPayload) || 0)));
@@ -874,7 +1012,9 @@ function PageInner() {
       fitPlanToTarget(
         Array.isArray(tasksPayload) ? tasksPayload : [],
         Math.round(
-          (Math.max(0, hoursPayload * 60 + minutesPayload) * 0.2 * targetPct) /
+          (Math.max(0, hoursPayload * 60 + minutesPayload) *
+            0.2 *
+            targetPct) /
             100,
         ),
         Math.max(1, Math.min(5, Number(energyPayload) || 3)),
@@ -1000,7 +1140,9 @@ function PageInner() {
     }
     const a = document.createElement("a");
     a.href = href;
-    a.download = `optimapp-export-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `optimapp-export-${new Date()
+      .toISOString()
+      .slice(0, 10)}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(href), 2000);
     notify("success", "Export started");
@@ -1017,7 +1159,8 @@ function PageInner() {
 
   const inputsMin = completedTasks.reduce((acc, t) => acc + t.duration, 0);
   const outputsTasks = completedTasks.length;
-  const efficiencyRatePerHour = inputsMin > 0 ? (outputsTasks * 60) / inputsMin : 0;
+  const efficiencyRatePerHour =
+    inputsMin > 0 ? (outputsTasks * 60) / inputsMin : 0;
   const efficiencyNorm = Math.max(0, Math.min(1, efficiencyRatePerHour / 1));
   const outcomesAchieved = completedTasks.filter(
     (t) => feedbackMap[t.id] === "yes",
@@ -1060,8 +1203,11 @@ function PageInner() {
             </div>
           </div>
           <nav className="p-3 space-y-1 text-sm">
-            {/* New: Dashboard link */}
-            <SidebarLink href="/dashboard" icon={<FlameIcon className="w-4 h-4" />}>
+            {/* Dashboard link */}
+            <SidebarLink
+              href="/dashboard"
+              icon={<FlameIcon className="w-4 h-4" />}
+            >
               View dashboard
             </SidebarLink>
 
@@ -1074,7 +1220,10 @@ function PageInner() {
             <SidebarLink href="#plan" icon={<ListIcon className="w-4 h-4" />}>
               Focus Plan
             </SidebarLink>
-            <SidebarLink href="#timer" icon={<PlayCircle className="w-4 h-4" />}>
+            <SidebarLink
+              href="#timer"
+              icon={<PlayCircle className="w-4 h-4" />}
+            >
               Timer
             </SidebarLink>
             <SidebarLink
@@ -1083,7 +1232,10 @@ function PageInner() {
             >
               Effectiveness
             </SidebarLink>
-            <SidebarLink href="#resources" icon={<HelpCircle className="w-4 h-4" />}>
+            <SidebarLink
+              href="#resources"
+              icon={<HelpCircle className="w-4 h-4" />}
+            >
               Resources
             </SidebarLink>
 
@@ -1130,7 +1282,7 @@ function PageInner() {
 
         {/* Main */}
         <main className="px-4 md:px-6 py-4 md:py-6">
-          {/* 🔹 New hero section aligned with dashboard messaging */}
+          {/* Hero section */}
           <section className="mb-6 rounded-2xl border dark:border-neutral-800 bg-white/80 dark:bg-neutral-900/70 backdrop-blur shadow-sm">
             <div className="p-4 md:p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="space-y-2">
@@ -1148,10 +1300,11 @@ function PageInner() {
                 </h1>
 
                 <p className="text-sm text-slate-600 dark:text-slate-300 max-w-xl">
-                  Most tools only track <span className="font-medium">time</span> or{" "}
-                  <span className="font-medium">tasks</span>. OptimApp overlays{" "}
-                  <span className="font-semibold">Efficiency + Impact</span> on top
-                  of your calendar and tasks so you can move from{" "}
+                  Most tools only track <span className="font-medium">time</span>{" "}
+                  or <span className="font-medium">tasks</span>. OptimApp
+                  overlays{" "}
+                  <span className="font-semibold">Efficiency + Impact</span> on
+                  top of your calendar and tasks so you can move from{" "}
                   <span className="font-medium">busy</span> →{" "}
                   <span className="font-medium">productive</span> →{" "}
                   <span className="font-medium">impactful</span>.
@@ -1203,8 +1356,8 @@ function PageInner() {
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
                     Your dashboard turns these into a single{" "}
-                    <span className="font-medium">Effectiveness score</span> and a{" "}
-                    <span className="font-medium">Top 20% tasks</span> list.
+                    <span className="font-medium">Effectiveness score</span> and
+                    a <span className="font-medium">Top 20% tasks</span> list.
                   </p>
                 </div>
               </div>
@@ -1248,9 +1401,10 @@ function PageInner() {
                       What is the 20%?
                     </div>
                     <p>
-                      We suggest focusing about <strong>20% of your day</strong> on
-                      your highest-impact tasks. Use the slider to nudge it up/down.
-                      Press <kbd>G</kbd> anytime to regenerate a fresh plan.
+                      We suggest focusing about{" "}
+                      <strong>20% of your day</strong> on your highest-impact
+                      tasks. Use the slider to nudge it up/down. Press{" "}
+                      <kbd>G</kbd> anytime to regenerate a fresh plan.
                     </p>
                     <div className="mt-2 flex items-center gap-2">
                       <button
@@ -1272,11 +1426,14 @@ function PageInner() {
                 <div className="mt-0.5 text-gray-700 dark:text-gray-300">
                   Base 20%:{" "}
                   <span className="font-semibold">
-                    {Math.floor(focusTargetMinutes / 60)}h {focusTargetMinutes % 60}
-                    m
+                    {Math.floor(focusTargetMinutes / 60)}h{" "}
+                    {focusTargetMinutes % 60}m
                   </span>
                   {" · "}
-                  With slider (<span className="font-semibold">{targetPct}%</span>):
+                  With slider (<span className="font-semibold">
+                    {targetPct}%
+                  </span>
+                  ):
                   {" "}
                   <span className="font-semibold">
                     {Math.floor(targetMinutes / 60)}h {targetMinutes % 60}m
@@ -1299,8 +1456,10 @@ function PageInner() {
                   <div className="text-xs md:text-sm">
                     Plan saved for today ·{" "}
                     <span className="font-semibold">
-                      {Math.floor(tomorrowPlanReady.targetMinutes / 60)}h{" "}
-                      {tomorrowPlanReady.targetMinutes % 60}m
+                      {Math.floor(
+                        tomorrowPlanReady.targetMinutes / 60,
+                      )}
+                      h {tomorrowPlanReady.targetMinutes % 60}m
                     </span>
                   </div>
                   <button
@@ -1324,6 +1483,20 @@ function PageInner() {
 
           {/* Cloud sync & backups */}
           <CloudSyncBar />
+
+          {celebrate && (
+            <div className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50/80 dark:border-emerald-700/70 dark:bg-emerald-900/40 px-3 py-2 text-sm flex items-center justify-between">
+              <div>
+                <span className="font-semibold">Nice work!</span>{" "}
+                <span className="text-emerald-800 dark:text-emerald-100">
+                  You completed “{celebrate.taskName}”.
+                </span>
+              </div>
+              <span className="text-[11px] text-emerald-700 dark:text-emerald-200">
+                Mark it “moved the needle” to teach the model.
+              </span>
+            </div>
+          )}
 
           {/* Integrations */}
           <IntegrationsPanel />
@@ -1361,7 +1534,10 @@ function PageInner() {
                     value={hours}
                     onChange={(e) =>
                       setHours(
-                        Math.max(0, Math.min(24, Number(e.target.value) || 0)),
+                        Math.max(
+                          0,
+                          Math.min(24, Number(e.target.value) || 0),
+                        ),
                       )
                     }
                     className="w-full border dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
@@ -1379,7 +1555,10 @@ function PageInner() {
                     value={minutes}
                     onChange={(e) =>
                       setMinutes(
-                        Math.max(0, Math.min(59, Number(e.target.value) || 0)),
+                        Math.max(
+                          0,
+                          Math.min(59, Number(e.target.value) || 0),
+                        ),
                       )
                     }
                     className="w-full border dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
@@ -1389,9 +1568,10 @@ function PageInner() {
 
               <div className="mt-3">
                 <label className="text-xs block mb-1" htmlFor="energy">
-                  Energy:{" "}
-                  <span className="font-medium">{userEnergy}</span>{" "}
-                  <span className="text-[11px] text-gray-500">(1 low – 5 high)</span>
+                  Energy: <span className="font-medium">{userEnergy}</span>{" "}
+                  <span className="text-[11px] text-gray-500">
+                    (1 low – 5 high)
+                  </span>
                 </label>
                 <input
                   id="energy"
@@ -1407,8 +1587,8 @@ function PageInner() {
 
               {inputs && (
                 <div className="mt-2 text-xs text-gray-600 dark:text-gray-300">
-                  Google busy: {gBusy}m · Microsoft busy: {mBusy}m · Using smaller
-                  free window: {smallerFree}m
+                  Google busy: {gBusy}m · Microsoft busy: {mBusy}m · Using
+                  smaller free window: {smallerFree}m
                 </div>
               )}
 
@@ -1416,8 +1596,8 @@ function PageInner() {
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Base 20%:</span>
                   <span className="text-sm font-bold text-indigo-700 dark:text-indigo-300">
-                    {Math.floor(focusTargetMinutes / 60)}h {focusTargetMinutes % 60}
-                    m
+                    {Math.floor(focusTargetMinutes / 60)}h{" "}
+                    {focusTargetMinutes % 60}m
                   </span>
                 </div>
               </div>
@@ -1495,7 +1675,10 @@ function PageInner() {
                       aria-label="Impact 1 to 5"
                     >
                       {[1, 2, 3, 4, 5].map((i) => (
-                        <label key={i} className="flex items-center gap-1 text-sm">
+                        <label
+                          key={i}
+                          className="flex items-center gap-1 text-sm"
+                        >
                           <input
                             type="radio"
                             checked={newImpact === i}
@@ -1509,7 +1692,10 @@ function PageInner() {
                   </div>
 
                   <div>
-                    <label className="block text-xs mb-1" htmlFor="duration">
+                    <label
+                      className="block text-xs mb-1"
+                      htmlFor="duration"
+                    >
                       Duration (minutes)
                     </label>
                     <input
@@ -1537,12 +1723,14 @@ function PageInner() {
 
                 {tasks.length === 0 ? (
                   <div className="mt-2 rounded border dark:border-neutral-700 p-3 text-sm text-gray-600 dark:text-gray-300 bg-gray-50/60 dark:bg-neutral-800/40">
-                    No tasks yet. Try “Sample tasks” above, or create 3–5 items with
-                    impact & duration.
+                    No tasks yet. Try “Sample tasks” above, or create 3–5
+                    items with impact & duration.
                   </div>
                 ) : (
                   <div className="mt-2">
-                    <h3 className="font-medium mb-2 text-sm">Current Tasks</h3>
+                    <h3 className="font-medium mb-2 text-sm">
+                      Current Tasks
+                    </h3>
                     <div className="space-y-3 max-h-72 overflow-y-auto pr-2">
                       {tasks.map((t) => {
                         const isEditing = editingId === t.id;
@@ -1556,7 +1744,9 @@ function PageInner() {
                                 <input
                                   className="w-full border dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded px-3 py-2"
                                   value={editName}
-                                  onChange={(e) => setEditName(e.target.value)}
+                                  onChange={(e) =>
+                                    setEditName(e.target.value)
+                                  }
                                   aria-label="Edit task name"
                                 />
                                 <div className="grid grid-cols-2 gap-3">
@@ -1577,10 +1767,14 @@ function PageInner() {
                                           <input
                                             type="radio"
                                             checked={editImpact === i}
-                                            onChange={() => setEditImpact(i)}
+                                            onChange={() =>
+                                              setEditImpact(i)
+                                            }
                                             aria-label={`Impact ${i}`}
                                           />
-                                          <span className="ml-1">{i}</span>
+                                          <span className="ml-1">
+                                            {i}
+                                          </span>
                                         </label>
                                       ))}
                                     </div>
@@ -1600,7 +1794,8 @@ function PageInner() {
                                       value={editDuration}
                                       onChange={(e) =>
                                         setEditDuration(
-                                          Number(e.target.value) || 30,
+                                          Number(e.target.value) ||
+                                            30,
                                         )
                                       }
                                       className="w-full border dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded px-3 py-2"
@@ -1629,14 +1824,16 @@ function PageInner() {
                                     {t.name}
                                   </div>
                                   <div className="text-xs text-gray-600 dark:text-gray-300">
-                                    Impact: {t.impact}/5 · {t.duration} min
+                                    Impact: {t.impact}/5 · {t.duration}{" "}
+                                    min
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <div className="text-xs bg-gray-100 dark:bg-neutral-800 px-2.5 py-1 rounded-full">
-                                    {(t.impact / Math.max(1, t.duration)).toFixed(
-                                      2,
-                                    )}{" "}
+                                    {(
+                                      t.impact /
+                                      Math.max(1, t.duration)
+                                    ).toFixed(2)}{" "}
                                     impact/min
                                   </div>
                                   <button
@@ -1647,7 +1844,9 @@ function PageInner() {
                                     Edit
                                   </button>
                                   <button
-                                    onClick={() => handleDeleteTask(t.id)}
+                                    onClick={() =>
+                                      handleDeleteTask(t.id)
+                                    }
                                     className="border dark:border-neutral-700 rounded px-2.5 py-1 text-xs"
                                     aria-label={`Delete ${t.name}`}
                                   >
@@ -1726,9 +1925,17 @@ function PageInner() {
                         } flex items-center justify-between`}
                       >
                         <div className="flex items-center gap-3">
-                          <div>{isActive ? <ProgressRing percent={percent} /> : <div className="w-10 h-10" aria-hidden />}</div>
                           <div>
-                            <div className="font-medium text-sm">{t.name}</div>
+                            {isActive ? (
+                              <ProgressRing percent={percent} />
+                            ) : (
+                              <div className="w-10 h-10" aria-hidden />
+                            )}
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">
+                              {t.name}
+                            </div>
                             <div className="text-xs text-gray-600 dark:text-gray-300">
                               Impact: {t.impact} · {t.duration} min
                             </div>
@@ -1738,10 +1945,14 @@ function PageInner() {
                           {isInPlan ? (
                             focusPlan[activeIndex ?? -1]?.id === t.id ? (
                               <button
-                                onClick={() => setIsRunning((s) => !s)}
+                                onClick={() =>
+                                  setIsRunning((s) => !s)
+                                }
                                 className="border dark:border-neutral-700 rounded px-3 py-1 text-xs flex items-center gap-2"
                                 aria-label={
-                                  isRunning ? "Pause current task" : "Resume current task"
+                                  isRunning
+                                    ? "Pause current task"
+                                    : "Resume current task"
                                 }
                               >
                                 {isRunning ? (
@@ -1812,7 +2023,9 @@ function PageInner() {
                       <button
                         onClick={() => setIsRunning((s) => !s)}
                         className="border dark:border-neutral-700 rounded px-3 py-1.5 text-sm"
-                        aria-label={isRunning ? "Pause timer" : "Resume timer"}
+                        aria-label={
+                          isRunning ? "Pause timer" : "Resume timer"
+                        }
                       >
                         {isRunning ? "Pause" : "Resume"}
                       </button>
@@ -1855,6 +2068,27 @@ function PageInner() {
             </section>
           </div>
 
+
+                    <button
+            onClick={() => {
+              try {
+                if (!beepRef.current) {
+                  beepRef.current = new Audio(BEEP_SRC);
+                }
+                beepRef.current.currentTime = 0;
+                beepRef.current
+                  .play()
+                  .catch((err) => console.error("Test beep failed:", err));
+              } catch (err) {
+                console.error("Test beep error:", err);
+              }
+            }}
+            className="mt-3 border dark:border-neutral-700 rounded px-3 py-1.5 text-xs"
+          >
+            Test sound
+          </button>
+
+
           {/* Effectiveness */}
           <section
             id="effectiveness"
@@ -1889,13 +2123,17 @@ function PageInner() {
                 role="group"
                 aria-label="Pareto 80 20 chart"
               >
-                <div className="text-sm font-medium mb-2">Pareto (80/20)</div>
+                <div className="text-sm font-medium mb-2">
+                  Pareto (80/20)
+                </div>
                 <ErrorBoundary
                   onError={(e) =>
                     notify(
                       "error",
                       "Pareto chart failed",
-                      String(e instanceof Error ? e.message : e),
+                      String(
+                        e instanceof Error ? e.message : e,
+                      ),
                     )
                   }
                   fallback={
@@ -1923,13 +2161,17 @@ function PageInner() {
                 role="group"
                 aria-label="Time versus value chart"
               >
-                <div className="text-sm font-medium mb-2">Time vs Value</div>
+                <div className="text-sm font-medium mb-2">
+                  Time vs Value
+                </div>
                 <ErrorBoundary
                   onError={(e) =>
                     notify(
                       "error",
                       "Time vs Value failed",
-                      String(e instanceof Error ? e.message : e),
+                      String(
+                        e instanceof Error ? e.message : e,
+                      ),
                     )
                   }
                   fallback={
@@ -1950,7 +2192,9 @@ function PageInner() {
                   className="text-indigo-600 dark:text-indigo-300 h-5 w-5"
                   aria-hidden
                 />
-                <h3 className="text-base font-semibold">Learning Insights</h3>
+              <h3 className="text-base font-semibold">
+                Learning Insights
+              </h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1971,7 +2215,10 @@ function PageInner() {
                 />
               </div>
 
-              <LearningLoopPanel tasks={completedTasks} feedbackMap={feedbackMap} />
+              <LearningLoopPanel
+                tasks={completedTasks}
+                feedbackMap={feedbackMap}
+              />
               <LearningLoopGlanceExternal
                 tasks={completedTasks}
                 feedbackMap={feedbackMap}
@@ -2010,7 +2257,9 @@ function PageInner() {
                         const nextIndex = (activeIndex ?? -1) + 1;
                         if (focusPlan[nextIndex]) {
                           setActiveIndex(nextIndex);
-                          setTimeLeft(focusPlan[nextIndex].duration * 60);
+                          setTimeLeft(
+                            focusPlan[nextIndex].duration * 60,
+                          );
                           setIsRunning(true);
                         }
                       }}
@@ -2028,7 +2277,10 @@ function PageInner() {
       </div>
 
       {/* Settings drawer mount */}
-      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsDrawer
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
 
       {/* Interrupt catcher */}
       <InterruptCatcher />
@@ -2068,7 +2320,9 @@ function SidebarLink({
 function Tile({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg bg-gray-50/70 dark:bg-neutral-800/40 p-3 text-center border dark:border-neutral-800">
-      <div className="text-xs text-gray-600 dark:text-gray-300">{label}</div>
+      <div className="text-xs text-gray-600 dark:text-gray-300">
+        {label}
+      </div>
       <div className="text-xl font-bold mt-0.5">{value}</div>
     </div>
   );
@@ -2086,7 +2340,8 @@ function MiniTile({
   const tones = {
     indigo:
       "text-indigo-700 bg-indigo-50 dark:text-indigo-300 dark:bg-indigo-950/30",
-    green: "text-green-700 bg-green-50 dark:text-green-300 dark:bg-green-950/30",
+    green:
+      "text-green-700 bg-green-50 dark:text-green-300 dark:bg-green-950/30",
     amber:
       "text-amber-800 bg-amber-50 dark:text-amber-300 dark:bg-amber-950/30",
   } as const;
@@ -2139,16 +2394,17 @@ function OnboardingModal({
           Welcome 👋
         </div>
         <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-          Spend about <strong>20%</strong> of your day on the tasks that drive{" "}
-          <strong>80%</strong> of your results. Add a few tasks (impact + minutes),
-          set your 20%, and hit “Create Focus Plan”.
+          Spend about <strong>20%</strong> of your day on the tasks that
+          drive <strong>80%</strong> of your results. Add a few tasks
+          (impact + minutes), set your 20%, and hit “Create Focus Plan”.
         </p>
         <ul className="mt-3 text-sm text-gray-700 dark:text-gray-300 list-disc pl-4 space-y-1">
           <li>
             <kbd>Space</kbd> to pause/resume
           </li>
           <li>
-            <kbd>N</kbd> = next · <kbd>S</kbd> = skip · <kbd>G</kbd> = regenerate
+            <kbd>N</kbd> = next · <kbd>S</kbd> = skip · <kbd>G</kbd> =
+            regenerate
           </li>
         </ul>
         <div className="mt-4 flex gap-2">
@@ -2217,7 +2473,7 @@ function ImportJsonDialog({
   );
 }
 
-/** Resources/help section (this is the one that uses X and modals) */
+/** Resources/help section */
 function ResourcesSection() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
@@ -2243,15 +2499,16 @@ function ResourcesSection() {
           <div className="rounded-lg border dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/70 p-3 text-sm">
             <div className="font-medium mb-1">Getting started</div>
             <p className="text-xs text-gray-600 dark:text-gray-300 mb-2">
-              New here? Set your available time, add 3–5 tasks, and use the 20% slider
-              to generate your first focus plan.
+              New here? Set your available time, add 3–5 tasks, and use the
+              20% slider to generate your first focus plan.
             </p>
             <ul className="text-xs text-gray-600 dark:text-gray-300 list-disc list-inside space-y-1 mb-2">
               <li>
                 <kbd>Space</kbd> to pause / resume
               </li>
               <li>
-                <kbd>N</kbd> = next · <kbd>S</kbd> = skip · <kbd>G</kbd> = regenerate
+                <kbd>N</kbd> = next · <kbd>S</kbd> = skip · <kbd>G</kbd> =
+                regenerate
               </li>
             </ul>
             <div className="flex flex-wrap gap-2 text-[11px]">
@@ -2280,8 +2537,8 @@ function ResourcesSection() {
           <div className="rounded-lg border dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/70 p-3 text-sm">
             <div className="font-medium mb-1">Integrations</div>
             <p className="text-xs text-gray-600 dark:text-gray-300 mb-2">
-              Connect Google or Outlook to pull tasks and write focus blocks to your
-              calendar.
+              Connect Google or Outlook to pull tasks and write focus blocks
+              to your calendar.
             </p>
             <ul className="text-xs text-gray-600 dark:text-gray-300 list-disc list-inside space-y-1 mb-3">
               <li>
@@ -2291,11 +2548,11 @@ function ResourcesSection() {
                 Use <strong>Sync</strong> to merge tasks into this planner.
               </li>
               <li>
-                <strong>Write block</strong> creates a 25-min calendar event.
+                <strong>Write block</strong> creates a 25-min calendar
+                event.
               </li>
             </ul>
             <div className="flex flex-wrap gap-2 text-[11px]">
-              {/* TODO: replace href with your real docs / Notion / GitHub URLs */}
               <a
                 href="/api/integrations/docs"
                 className="inline-flex items-center rounded-full border px-2 py-1 hover:bg-gray-50 dark:hover:bg-neutral-800"
@@ -2347,7 +2604,9 @@ function ResourcesSection() {
             <ul className="text-xs text-gray-600 dark:text-gray-300 list-disc list-inside space-y-1">
               <li>Use high-impact (4–5) tasks early when energy is highest.</li>
               <li>Keep blocks 25–50 minutes with short breaks.</li>
-              <li>Mark blocks as “moved the needle” so insights stay smart.</li>
+              <li>
+                Mark blocks as “moved the needle” so insights stay smart.
+              </li>
             </ul>
           </div>
         </div>
@@ -2358,7 +2617,10 @@ function ResourcesSection() {
         open={feedbackOpen}
         onClose={() => setFeedbackOpen(false)}
       />
-      <ReleaseNotesModal open={notesOpen} onClose={() => setNotesOpen(false)} />
+      <ReleaseNotesModal
+        open={notesOpen}
+        onClose={() => setNotesOpen(false)}
+      />
     </>
   );
 }
@@ -2438,7 +2700,9 @@ function FeedbackModal({ open, onClose }: SimpleModalProps) {
       {/* Panel */}
       <div
         className={`relative w-full max-w-md rounded-xl bg-white dark:bg-neutral-900 p-5 shadow-xl border dark:border-neutral-800 transition-all duration-150 ${
-          animateIn ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-2 scale-95"
+          animateIn
+            ? "opacity-100 translate-y-0 scale-100"
+            : "opacity-0 translate-y-2 scale-95"
         }`}
       >
         <div className="flex items-center justify-between mb-3">
@@ -2635,7 +2899,9 @@ function ReleaseNotesModal({ open, onClose }: SimpleModalProps) {
       {/* Panel */}
       <div
         className={`relative w-full max-w-lg rounded-xl bg-white dark:bg-neutral-900 p-5 shadow-xl border dark:border-neutral-800 max-h-[80vh] flex flex-col transition-all duration-150 ${
-          animateIn ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-2 scale-95"
+          animateIn
+            ? "opacity-100 translate-y-0 scale-100"
+            : "opacity-0 translate-y-2 scale-95"
         }`}
       >
         <div className="flex items-center justify-between mb-3">
@@ -2686,13 +2952,17 @@ function LearningLoopPanel({
   feedbackMap: Record<number, Feedback>;
 }) {
   const { rows, top3, strengths, opportunities } = React.useMemo(() => {
-    const byProject = new Map<string, { done: number; effective: number }>();
+    const byProject = new Map<
+      string,
+      { done: number; effective: number }
+    >();
     tasks.forEach((t) => {
       const project = t.project || "General";
-      const rec = byProject.get(project) || {
-        done: 0,
-        effective: 0,
-      };
+      const rec =
+        byProject.get(project) || {
+          done: 0,
+          effective: 0,
+        };
       rec.done += 1;
       if (feedbackMap[t.id] === "yes") rec.effective += 1;
       byProject.set(project, rec);
@@ -2732,7 +3002,8 @@ function LearningLoopPanel({
   if (rows.length === 0) {
     return (
       <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-        No feedback yet — click “Yes/No” after blocks to help the model learn.
+        No feedback yet — click “Yes/No” after blocks to help the model
+        learn.
       </div>
     );
   }
@@ -2755,7 +3026,10 @@ function LearningLoopPanel({
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.project} className="border-t dark:border-neutral-800">
+                <tr
+                  key={r.project}
+                  className="border-t dark:border-neutral-800"
+                >
                   <td className="p-2">{r.project}</td>
                   <td className="p-2 text-right">
                     {r.effective}/{r.done}
@@ -2780,8 +3054,8 @@ function LearningLoopPanel({
             <ul className="list-disc pl-5 text-sm mb-3">
               {top3.map((r) => (
                 <li key={r.project}>
-                  <span className="font-medium">{r.project}</span> — {r.rate}%
-                  effective
+                  <span className="font-medium">{r.project}</span> —{" "}
+                  {r.rate}% effective
                 </li>
               ))}
             </ul>

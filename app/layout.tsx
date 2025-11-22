@@ -21,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.className} bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100`}
+        className={`${inter.className} antialiased font-medium text-slate-800 dark:text-slate-100`}
       >
         <ThemeProvider>
           <AppShell>{children}</AppShell>
